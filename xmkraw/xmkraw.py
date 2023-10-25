@@ -1,6 +1,7 @@
 import argparse
 import sys
 import os
+import glob
 import re
 
 from PIL import Image
@@ -299,7 +300,11 @@ def stage2(rmv_name, output_bmp_dir, src_file, src_cut_ss, src_cut_to, src_cut_o
   print("[STAGE 2] started.")
 
   os.makedirs(output_bmp_dir, exist_ok=True)
-  
+
+  for p in glob.glob(f"{output_bmp_dir}{os.sep}*.bmp"):
+    if os.path.isfile(p):
+      os.remove(p)
+
   fps_detail = FPS().get_fps_detail(screen_width, fps)
 
   opt = f"-ss {src_cut_ss} -to {src_cut_to} -i {src_file} -ss {src_cut_ofs} -t {src_cut_len} " + \
@@ -349,10 +354,13 @@ def main():
   args = parser.parse_args()
 
   output_bmp_dir = "output_bmp"
+
   pcm_file = f"{args.rmv_name}.s{args.pcm_freq//1000}"
   pcm_file2 = "_wip_pcm2.dat"
   adpcm_file = f"{args.rmv_name}.pcm"
   raw_file = f"{args.rmv_name}.raw"
+  rmv_pcm_file = f"{args.rmv_name}_s{args.pcm_freq//1000}.rmv"
+  rmv_adpcm_file = f"{args.rmv_name}_pcm.rmv"
 
   if stage1(args.rmv_name, args.src_file, args.src_cut_ss, args.src_cut_to, args.src_cut_ofs, args.src_cut_len, args.pcm_volume, args.pcm_freq, pcm_file, pcm_file2, args.adpcm_freq, adpcm_file) != 0:
     return
@@ -362,6 +370,24 @@ def main():
 
   if stage3(args.rmv_name, output_bmp_dir, args.screen_width, raw_file):
     return
+
+  with open(rmv_pcm_file, "w") as f:
+    f.write(f"{args.screen_width}\n")
+    f.write(f"{args.view_height}\n")
+    f.write(f"{args.fps}\n")
+    f.write(f"{raw_file}\n")
+    f.write(f"{pcm_file}\n")
+    f.write(f"TITLE:\n")
+    f.write(f"COMMENT:{screen_width}x{view_height} {fps}fps 16bit PCM {args.pcm_freq}Hz stereo\n")
+
+  with open(rmv_adpcm_file, "w") as f:
+    f.write(f"{args.screen_width}\n")
+    f.write(f"{args.view_height}\n")
+    f.write(f"{args.fps}\n")
+    f.write(f"{raw_file}\n")
+    f.write(f"{adpcm_file}\n")
+    f.write(f"TITLE:\n")
+    f.write(f"COMMENT:{screen_width}x{view_height} {fps}fps ADPCM {args.adpcm_freq}Hz mono\n")
 
 if __name__ == "__main__":
   main()
