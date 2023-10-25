@@ -386,6 +386,7 @@ def main():
   raw_file = f"{args.rmv_name}.raw"
   rmv_pcm_file = f"{args.rmv_name}_s{args.pcm_freq//1000}.rmv"
   rmv_adpcm_file = f"{args.rmv_name}_pcm.rmv"
+  colors = 65536 if args.use_ibit else 32768
 
   fps_detail = FPS().get_fps_detail(args.screen_width, args.fps)
   if fps_detail is None:
@@ -408,7 +409,7 @@ def main():
     f.write(f"{raw_file}\n")
     f.write(f"{pcm_file}\n")
     f.write(f"TITLE:{args.src_file}\n")
-    f.write(f"COMMENT:{args.screen_width}x{args.view_height} {fps_detail}fps 16bit PCM {args.pcm_freq}Hz stereo\n")
+    f.write(f"COMMENT:{args.screen_width}x{args.view_height} {colors}colors {fps_detail}fps 16bit PCM {args.pcm_freq}Hz stereo\n")
 
   with open(rmv_adpcm_file, "w") as f:
     f.write(f"{args.screen_width}\n")
@@ -417,7 +418,7 @@ def main():
     f.write(f"{raw_file}\n")
     f.write(f"{adpcm_file}\n")
     f.write(f"TITLE:{args.src_file}\n")
-    f.write(f"COMMENT:{args.screen_width}x{args.view_height} {fps_detail}fps ADPCM {args.adpcm_freq}Hz mono\n")
+    f.write(f"COMMENT:{args.screen_width}x{args.view_height} {colors}colors {fps_detail}fps ADPCM {args.adpcm_freq}Hz mono\n")
 
   return 0
 
