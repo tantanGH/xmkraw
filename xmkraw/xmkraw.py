@@ -183,7 +183,6 @@ class BMPtoRAW:
           im_bytes = im.tobytes()
 
           if screen_width == 384 or screen_width == 512:
-
             grm_bytes = bytearray(512 * im_height * 2)
             for y in range(im_height):
               for x in range(im_width):
@@ -205,7 +204,7 @@ class BMPtoRAW:
             f.write(grm_bytes)
             written_frames += 1
             print(".", end="", flush=True)
-                
+
           else:
 
             if frame0 is False:
