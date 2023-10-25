@@ -407,7 +407,7 @@ def main():
     f.write(f"{args.fps}\n")
     f.write(f"{raw_file}\n")
     f.write(f"{pcm_file}\n")
-    f.write(f"TITLE:\n")
+    f.write(f"TITLE:{args.src_file}\n")
     f.write(f"COMMENT:{args.screen_width}x{args.view_height} {fps_detail}fps 16bit PCM {args.pcm_freq}Hz stereo\n")
 
   with open(rmv_adpcm_file, "w") as f:
@@ -416,7 +416,7 @@ def main():
     f.write(f"{args.fps}\n")
     f.write(f"{raw_file}\n")
     f.write(f"{adpcm_file}\n")
-    f.write(f"TITLE:\n")
+    f.write(f"TITLE:{args.src_file}\n")
     f.write(f"COMMENT:{args.screen_width}x{args.view_height} {fps_detail}fps ADPCM {args.adpcm_freq}Hz mono\n")
 
   return 0
