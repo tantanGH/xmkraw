@@ -315,7 +315,7 @@ def stage1(rmv_name, src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len,
   return 0
 
 
-def stage2(rmv_name, output_bmp_dir, src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len, fps_detail, screen_width, view_height, deband):
+def stage2(rmv_name, output_bmp_dir, src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len, fps_detail, screen_width, view_height, no_deband):
 
   print("[STAGE 2] started.")
 
@@ -325,10 +325,10 @@ def stage2(rmv_name, output_bmp_dir, src_file, src_cut_ss, src_cut_to, src_cut_o
     if os.path.isfile(p):
       os.remove(p)
   
-  if deband:
-    deband_filter=",deband=1thr=0.02:2thr=0.02:3thr=0.02:blur=1"
-  else:
+  if no_deband:
     deband_filter=""
+  else:
+    deband_filter=",deband=1thr=0.02:2thr=0.02:3thr=0.02:blur=1"
 
   opt = f"-ss {src_cut_ss} -to {src_cut_to} -i {src_file} -ss {src_cut_ofs} -t {src_cut_len} " + \
         f"-filter_complex '[0:v] fps={fps_detail},scale={screen_width}:{view_height}{deband_filter}' " + \
@@ -376,7 +376,7 @@ def main():
   parser.add_argument("-pa", "--pcm_avg_min", help="pcm average min", type=float, default=8.5)
   parser.add_argument("-af", "--adpcm_freq", help="adpcm frequency", type=int, default=15625)
   parser.add_argument("-ib", "--use_ibit", help="use i bit for color reduction", action='store_true')
-  parser.add_argument("-db", "--deband", help="debanding filter", action='store_true')
+  parser.add_argument("-nd", "--no_deband", help="disable debanding filter", action='store_true')
 
   args = parser.parse_args()
 
@@ -398,7 +398,7 @@ def main():
   if stage1(args.rmv_name, args.src_file, args.src_cut_ss, args.src_cut_to, args.src_cut_ofs, args.src_cut_len, args.pcm_volume, args.pcm_peak_max, args.pcm_avg_min, args.pcm_freq, pcm_file, pcm_file2, args.adpcm_freq, adpcm_file) != 0:
     return 1
   
-  if stage2(args.rmv_name, output_bmp_dir, args.src_file, args.src_cut_ss, args.src_cut_to, args.src_cut_ofs, args.src_cut_len, fps_detail, args.screen_width, args.view_height, args.deband) != 0:
+  if stage2(args.rmv_name, output_bmp_dir, args.src_file, args.src_cut_ss, args.src_cut_to, args.src_cut_ofs, args.src_cut_len, fps_detail, args.screen_width, args.view_height, args.no_deband) != 0:
     return 1
 
   if stage3(args.rmv_name, output_bmp_dir, args.screen_width, args.use_ibit, raw_file):
