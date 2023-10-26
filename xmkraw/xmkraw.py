@@ -292,19 +292,19 @@ class FPS:
       return FPS.fps_detail_256[fps]
 
 
-def stage1(rmv_name, src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len, pcm_volume, pcm_freq, pcm_file, pcm_file2, adpcm_freq, adpcm_file):
+def stage1(rmv_name, src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len, pcm_volume, pcm_peak_max, pcm_avg_min, pcm_freq, pcm_file, pcm_file2, adpcm_freq, adpcm_file):
 
   print("[STAGE 1] started.")
 
   opt = f"-y -ss {src_cut_ss} -to {src_cut_to} -i {src_file} " + \
-        f"-f s16be -acodec pcm_s16be -filter:a 'volume={pcm_volume/100.0}' -ar {pcm_freq}   -ac 2 -ss {src_cut_ofs} -t {src_cut_len} {pcm_file}  " \
-        f"-f s16be -acodec pcm_s16be -filter:a 'volume={pcm_volume/100.0}' -ar {adpcm_freq} -ac 1 -ss {src_cut_ofs} -t {src_cut_len} {pcm_file2} " 
+        f"-f s16be -acodec pcm_s16be -filter:a 'volume={pcm_volume}' -ar {pcm_freq}   -ac 2 -ss {src_cut_ofs} -t {src_cut_len} {pcm_file}  " \
+        f"-f s16be -acodec pcm_s16be -filter:a 'volume={pcm_volume}' -ar {adpcm_freq} -ac 1 -ss {src_cut_ofs} -t {src_cut_len} {pcm_file2} " 
 
   if os.system(f"ffmpeg {opt}") != 0:
     print("error: ffmpeg failed.")
     return 1
   
-  if ADPCM().convert_pcm_to_adpcm(pcm_file, pcm_freq, 2, adpcm_file, adpcm_freq, 98.0, 8.5) != 0:
+  if ADPCM().convert_pcm_to_adpcm(pcm_file, pcm_freq, 2, adpcm_file, adpcm_freq, pcm_peak_max, pcm_avg_min) != 0:
     print("error: adpcm conversion failed.")
     return 1
 
@@ -370,8 +370,10 @@ def main():
   parser.add_argument("-fps", help="frame per second", type=int, default=24)
   parser.add_argument("-sw", "--screen_width", help="screen width", type=int, default=384)
   parser.add_argument("-vh", "--view_height", help="view height", type=int, default=200)
-  parser.add_argument("-pv", "--pcm_volume", help="pcm volume", type=int, default=100)
+  parser.add_argument("-pv", "--pcm_volume", help="pcm volume", type=float, default=1.0)
   parser.add_argument("-pf", "--pcm_freq", help="pcm frequency", type=int, default=48000)
+  parser.add_argument("-pp", "--pcm_peak", help="pcm peak max", type=float, default=98.0)
+  parser.add_argument("-pa", "--pcm_avg_min", help="pcm average min", type=float, default=8.5))
   parser.add_argument("-af", "--adpcm_freq", help="adpcm frequency", type=int, default=15625)
   parser.add_argument("-ib", "--use_ibit", help="use i bit for color reduction", action='store_true')
   parser.add_argument("-db", "--deband", help="debanding filter", action='store_true')
@@ -393,7 +395,7 @@ def main():
     print("error: unknown fps")
     return 1
 
-  if stage1(args.rmv_name, args.src_file, args.src_cut_ss, args.src_cut_to, args.src_cut_ofs, args.src_cut_len, args.pcm_volume, args.pcm_freq, pcm_file, pcm_file2, args.adpcm_freq, adpcm_file) != 0:
+  if stage1(args.rmv_name, args.src_file, args.src_cut_ss, args.src_cut_to, args.src_cut_ofs, args.src_cut_len, args.pcm_volume, args.pcm_peak_max, args.pcm_avg_min, args.pcm_freq, pcm_file, pcm_file2, args.adpcm_freq, adpcm_file) != 0:
     return 1
   
   if stage2(args.rmv_name, output_bmp_dir, args.src_file, args.src_cut_ss, args.src_cut_to, args.src_cut_ofs, args.src_cut_len, fps_detail, args.screen_width, args.view_height, args.deband) != 0:
