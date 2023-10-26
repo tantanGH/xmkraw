@@ -372,7 +372,7 @@ def main():
   parser.add_argument("-vh", "--view_height", help="view height", type=int, default=200)
   parser.add_argument("-pv", "--pcm_volume", help="pcm volume", type=float, default=1.0)
   parser.add_argument("-pf", "--pcm_freq", help="pcm frequency", type=int, default=48000)
-  parser.add_argument("-pp", "--pcm_peak", help="pcm peak max", type=float, default=98.0)
+  parser.add_argument("-pp", "--pcm_peak_max", help="pcm peak max", type=float, default=98.0)
   parser.add_argument("-pa", "--pcm_avg_min", help="pcm average min", type=float, default=8.5)
   parser.add_argument("-af", "--adpcm_freq", help="adpcm frequency", type=int, default=15625)
   parser.add_argument("-ib", "--use_ibit", help="use i bit for color reduction", action='store_true')
