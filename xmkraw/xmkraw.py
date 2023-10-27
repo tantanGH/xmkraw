@@ -2,7 +2,7 @@ import argparse
 import sys
 import os
 import glob
-import re
+import shutil
 
 from PIL import Image
 
@@ -303,19 +303,22 @@ class FPS:
 #
 #  stage 1 mov to adpcm/pcm
 #
-def stage1(rmv_name, src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len, pcm_volume, pcm_peak_max, pcm_avg_min, pcm_freq, pcm_file, pcm_file2, adpcm_freq, adpcm_file):
+def stage1(src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len, \
+           pcm_volume, pcm_peak_max, pcm_avg_min, pcm_freq, pcm_data_file, adpcm_freq, adpcm_wip_file, adpcm_data_file):
 
   print("[STAGE 1] started.")
 
   opt = f"-y -ss {src_cut_ss} -to {src_cut_to} -i {src_file} " + \
-        f"-f s16be -acodec pcm_s16be -filter:a 'volume={pcm_volume}' -ar {pcm_freq}   -ac 2 -ss {src_cut_ofs} -t {src_cut_len} {pcm_file}  " \
-        f"-f s16be -acodec pcm_s16be -filter:a 'volume={pcm_volume}' -ar {adpcm_freq} -ac 1 -ss {src_cut_ofs} -t {src_cut_len} {pcm_file2} " 
+        f"-f s16be -acodec pcm_s16be -filter:a 'volume={pcm_volume}' -ar {adpcm_freq} -ac 1 -ss {src_cut_ofs} -t {src_cut_len} {adpcm_wip_file} " 
 
+  if pcm_freq:
+    opt += f"-f s16be -acodec pcm_s16be -filter:a 'volume={pcm_volume}' -ar {pcm_freq} -ac 2 -ss {src_cut_ofs} -t {src_cut_len} {pcm_data_file}  " \
+  
   if os.system(f"ffmpeg {opt}") != 0:
     print("error: ffmpeg failed.")
     return 1
   
-  if ADPCM().convert_pcm_to_adpcm(pcm_file, pcm_freq, 2, adpcm_file, adpcm_freq, pcm_peak_max, pcm_avg_min) != 0:
+  if ADPCM().convert_pcm_to_adpcm(adpcm_wip_file, adpcm_freq, 1, adpcm_data_file, adpcm_freq, pcm_peak_max, pcm_avg_min) != 0:
     print("error: adpcm conversion failed.")
     return 1
 
@@ -328,7 +331,8 @@ def stage1(rmv_name, src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len,
 #
 #  stage2 mov to bmp
 #
-def stage2(rmv_name, output_bmp_dir, src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len, fps_detail, screen_width, view_width, view_height, no_deband):
+def stage2(src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len, \
+           fps_detail, screen_width, view_width, view_height, no_deband, output_bmp_dir):
 
   print("[STAGE 2] started.")
 
@@ -364,14 +368,14 @@ def stage2(rmv_name, output_bmp_dir, src_file, src_cut_ss, src_cut_to, src_cut_o
 #
 #  stage 3 bmp to raw
 #
-def stage3(rmv_name, output_bmp_dir, screen_width, view_width, view_height, use_ibit, raw_file):
+def stage3(output_bmp_dir, screen_width, view_width, view_height, use_ibit, raw_data_file):
 
   print("[STAGE 3] started.")
 
   if view_width is None:
     view_width = screen_width
 
-  if BMPtoRAW().convert(raw_file, output_bmp_dir, screen_width, 256, view_width, view_height, use_ibit) != 0:
+  if BMPtoRAW().convert(raw_data_file, output_bmp_dir, screen_width, 256, view_width, view_height, use_ibit) != 0:
     print("error: BMP to RAW conversion failed.")
     return 1
   
@@ -396,60 +400,70 @@ def main():
   parser.add_argument("-vw", "--view_width", help="view width", type=int, default=None)
   parser.add_argument("-vh", "--view_height", help="view height", type=int, default=200)
   parser.add_argument("-pv", "--pcm_volume", help="pcm volume", type=float, default=1.0)
-  parser.add_argument("-pf", "--pcm_freq", help="pcm frequency", type=int, default=48000, choices=[16000, 22050, 24000, 32000, 44100, 48000])
   parser.add_argument("-pp", "--pcm_peak_max", help="pcm peak max", type=float, default=98.0)
   parser.add_argument("-pa", "--pcm_avg_min", help="pcm average min", type=float, default=8.5)
+  parser.add_argument("-pf", "--pcm_freq", help="16bit pcm frequency", type=int, default=None, choices=[None, 16000, 22050, 24000, 32000, 44100, 48000])
   parser.add_argument("-af", "--adpcm_freq", help="adpcm frequency", type=int, default=15625, choices=[15625, 31250])
   parser.add_argument("-ib", "--use_ibit", help="use i bit for color reduction", action='store_true')
   parser.add_argument("-nd", "--no_deband", help="disable debanding filter", action='store_true')
+  parser.add_argument("-bm", "--preserve_bmp", help="preserve output bmp folder", action='store_true')
 
   args = parser.parse_args()
 
   output_bmp_dir = "output_bmp"
 
-  pcm_file = f"{args.rmv_name}.s{args.pcm_freq//1000}"
-  pcm_file2 = "_wip_pcm2.dat"
-  adpcm_file = f"{args.rmv_name}.p31" if args.adpcm_freq == 31250 else f"{args.rmv_name}.pcm"
-  raw_file = f"{args.rmv_name}.raw"
-  rmv_pcm_file = f"{args.rmv_name}_s{args.pcm_freq//1000}.rmv"
-  rmv_adpcm_file = f"{args.rmv_name}_p31.rmv" if args.adpcm_freq == 31250 else f"{args.rmv_name}_pcm.rmv"
-  colors = 65536 if args.use_ibit else 32768
+  raw_data_file = f"{args.rmv_name}.raw"
+
+  adpcm_wip_file = f"_wip_adpcm.dat"
+  adpcm_data_file = f"{args.rmv_name}.p31" if args.adpcm_freq == 31250 else f"{args.rmv_name}.pcm"
+
+  if args.pcm_freq:
+    pcm_data_file = f"{args.rmv_name}.s{args.pcm_freq//1000}"
+  else:
+    pcm_data_file = None
 
   fps_detail = FPS().get_fps_detail(args.screen_width, args.fps)
   if fps_detail is None:
     print("error: unknown fps")
     return 1
 
-  if stage1(args.rmv_name, args.src_file, args.src_cut_ss, args.src_cut_to, args.src_cut_ofs, args.src_cut_len, \
-            args.pcm_volume, args.pcm_peak_max, args.pcm_avg_min, args.pcm_freq, \
-            pcm_file, pcm_file2, args.adpcm_freq, adpcm_file) != 0:
+  if stage1(args.src_file, args.src_cut_ss, args.src_cut_to, args.src_cut_ofs, args.src_cut_len, \
+            args.pcm_volume, args.pcm_peak_max, args.pcm_avg_min, args.pcm_freq, pcm_data_file, \
+            args.adpcm_freq, adpcm_wip_file, adpcm_data_file) != 0:
     return 1
   
-  if stage2(args.rmv_name, output_bmp_dir, args.src_file, args.src_cut_ss, args.src_cut_to, args.src_cut_ofs, args.src_cut_len, \
-            fps_detail, args.screen_width, args.view_width, args.view_height, args.no_deband) != 0:
+  if stage2(args.src_file, args.src_cut_ss, args.src_cut_to, args.src_cut_ofs, args.src_cut_len, \
+            fps_detail, args.screen_width, args.view_width, args.view_height, args.no_deband, \
+            output_bmp_dir) != 0:
     return 1
 
-  if stage3(args.rmv_name, output_bmp_dir, args.screen_width, args.view_width, args.view_height, \
-            args.use_ibit, raw_file):
+  if stage3(output_bmp_dir, args.screen_width, args.view_width, args.view_height, args.use_ibit, raw_data_file):
     return 1
 
-  with open(rmv_pcm_file, "w") as f:
+  adpcm_rmv_file = f"{args.rmv_name}_p31.rmv" if args.adpcm_freq == 31250 else f"{args.rmv_name}_pcm.rmv"
+  colors = 65536 if args.use_ibit else 32768
+  with open(adpcm_rmv_file, "w") as f:
     f.write(f"{args.screen_width}\n")
     f.write(f"{args.view_height}\n")
     f.write(f"{args.fps}\n")
-    f.write(f"{raw_file}\n")
-    f.write(f"{pcm_file}\n")
-    f.write(f"TITLE:{args.src_file}\n")
-    f.write(f"COMMENT:{args.screen_width}x{args.view_height} {colors}colors {fps_detail}fps 16bit PCM {args.pcm_freq}Hz stereo\n")
-
-  with open(rmv_adpcm_file, "w") as f:
-    f.write(f"{args.screen_width}\n")
-    f.write(f"{args.view_height}\n")
-    f.write(f"{args.fps}\n")
-    f.write(f"{raw_file}\n")
-    f.write(f"{adpcm_file}\n")
+    f.write(f"{raw_data_file}\n")
+    f.write(f"{adpcm_data_file}\n")
     f.write(f"TITLE:{args.src_file}\n")
     f.write(f"COMMENT:{args.screen_width}x{args.view_height} {colors}colors {fps_detail}fps ADPCM {args.adpcm_freq}Hz mono\n")
+
+  if pcm_rmv_file:
+    pcm_rmv_file = f"{args.rmv_name}_s{args.pcm_freq//1000}.rmv"
+    with open(pcm_rmv_file, "w") as f:
+      f.write(f"{args.screen_width}\n")
+      f.write(f"{args.view_height}\n")
+      f.write(f"{args.fps}\n")
+      f.write(f"{raw_data_file}\n")
+      f.write(f"{pcm_data_file}\n")
+      f.write(f"TITLE:{args.src_file}\n")
+      f.write(f"COMMENT:{args.screen_width}x{args.view_height} {colors}colors {fps_detail}fps 16bit PCM {args.pcm_freq}Hz stereo\n")
+
+  if args.no_preserve_bmp is False:
+    shutil.rmtree(output_bmp_dir)
 
   return 0
 
