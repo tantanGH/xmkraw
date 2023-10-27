@@ -322,7 +322,7 @@ def stage1(src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len, \
     print("error: adpcm conversion failed.")
     return 1
 
-  os.remove(pcm_file2) 
+  os.remove(adpcm_wip_file) 
   
   print("[STAGE 1] completed.")
 
