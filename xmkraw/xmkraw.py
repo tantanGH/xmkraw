@@ -451,7 +451,7 @@ def main():
     f.write(f"TITLE:{args.src_file}\n")
     f.write(f"COMMENT:{args.screen_width}x{args.view_height} {colors}colors {fps_detail}fps ADPCM {args.adpcm_freq}Hz mono\n")
 
-  if pcm_rmv_file:
+  if args.pcm_freq:
     pcm_rmv_file = f"{args.rmv_name}_s{args.pcm_freq//1000}.rmv"
     with open(pcm_rmv_file, "w") as f:
       f.write(f"{args.screen_width}\n")
