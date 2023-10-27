@@ -462,7 +462,7 @@ def main():
       f.write(f"TITLE:{args.src_file}\n")
       f.write(f"COMMENT:{args.screen_width}x{args.view_height} {colors}colors {fps_detail}fps 16bit PCM {args.pcm_freq}Hz stereo\n")
 
-  if args.no_preserve_bmp is False:
+  if args.preserve_bmp is False:
     shutil.rmtree(output_bmp_dir)
 
   return 0
