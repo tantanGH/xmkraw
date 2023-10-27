@@ -328,7 +328,7 @@ def stage1(rmv_name, src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len,
 #
 #  stage2 mov to bmp
 #
-def stage2(rmv_name, output_bmp_dir, src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len, fps_detail, screen_width, screen_height, view_width, view_height, no_deband):
+def stage2(rmv_name, output_bmp_dir, src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len, fps_detail, screen_width, view_width, view_height, no_deband):
 
   print("[STAGE 2] started.")
 
@@ -364,14 +364,14 @@ def stage2(rmv_name, output_bmp_dir, src_file, src_cut_ss, src_cut_to, src_cut_o
 #
 #  stage 3 bmp to raw
 #
-def stage3(rmv_name, output_bmp_dir, screen_width, screen_height, view_width, view_height, use_ibit, raw_file):
+def stage3(rmv_name, output_bmp_dir, screen_width, view_width, view_height, use_ibit, raw_file):
 
   print("[STAGE 3] started.")
 
   if view_width is None:
     view_width = screen_width
 
-  if BMPtoRAW().convert(raw_file, output_bmp_dir, screen_width, screen_height, view_width, view_height, use_ibit) != 0:
+  if BMPtoRAW().convert(raw_file, output_bmp_dir, screen_width, 256, view_width, view_height, use_ibit) != 0:
     print("error: BMP to RAW conversion failed.")
     return 1
   
@@ -387,20 +387,19 @@ def main():
   parser = argparse.ArgumentParser()
   parser.add_argument("src_file", help="source movie file")
   parser.add_argument("rmv_name", help="target rawmv base name")
-  parser.add_argument("-fps", help="frame per second", type=int, default=24)
+  parser.add_argument("-fps", help="frame per second", type=int, default=24, choices=[2,3,4,5,6,10,12,15,20,24,30])
   parser.add_argument("-cs", "--src_cut_ss", help="source cut start timestamp", default="00:00:00.000")
   parser.add_argument("-ct", "--src_cut_to", help="source cut end timestamp", default="00:06:00.000")
   parser.add_argument("-co", "--src_cut_ofs", help="source cut start offset", default="00:00:00.000")
   parser.add_argument("-cl", "--src_cut_len", help="source cut length", default="00:04:59.500")
-  parser.add_argument("-sw", "--screen_width", help="screen width", type=int, default=384)
-  parser.add_argument("-sh", "--screen_height", help="screen height", type=int, default=256)
+  parser.add_argument("-sw", "--screen_width", help="screen width", type=int, default=384, choices=[256, 384, 512])
   parser.add_argument("-vw", "--view_width", help="view width", type=int, default=None)
   parser.add_argument("-vh", "--view_height", help="view height", type=int, default=200)
   parser.add_argument("-pv", "--pcm_volume", help="pcm volume", type=float, default=1.0)
-  parser.add_argument("-pf", "--pcm_freq", help="pcm frequency", type=int, default=48000)
+  parser.add_argument("-pf", "--pcm_freq", help="pcm frequency", type=int, default=48000, choices=[16000, 22050, 24000, 32000, 44100, 48000])
   parser.add_argument("-pp", "--pcm_peak_max", help="pcm peak max", type=float, default=98.0)
   parser.add_argument("-pa", "--pcm_avg_min", help="pcm average min", type=float, default=8.5)
-  parser.add_argument("-af", "--adpcm_freq", help="adpcm frequency", type=int, default=15625)
+  parser.add_argument("-af", "--adpcm_freq", help="adpcm frequency", type=int, default=15625, choices=[15625, 31250])
   parser.add_argument("-ib", "--use_ibit", help="use i bit for color reduction", action='store_true')
   parser.add_argument("-nd", "--no_deband", help="disable debanding filter", action='store_true')
 
@@ -410,10 +409,10 @@ def main():
 
   pcm_file = f"{args.rmv_name}.s{args.pcm_freq//1000}"
   pcm_file2 = "_wip_pcm2.dat"
-  adpcm_file = f"{args.rmv_name}.pcm"
+  adpcm_file = f"{args.rmv_name}.p31" if args.adpcm_freq == 31250 else f"{args.rmv_name}.pcm"
   raw_file = f"{args.rmv_name}.raw"
   rmv_pcm_file = f"{args.rmv_name}_s{args.pcm_freq//1000}.rmv"
-  rmv_adpcm_file = f"{args.rmv_name}_pcm.rmv"
+  rmv_adpcm_file = f"{args.rmv_name}_p31.rmv" if args.adpcm_freq == 31250 else f"{args.rmv_name}_pcm.rmv"
   colors = 65536 if args.use_ibit else 32768
 
   fps_detail = FPS().get_fps_detail(args.screen_width, args.fps)
@@ -427,10 +426,10 @@ def main():
     return 1
   
   if stage2(args.rmv_name, output_bmp_dir, args.src_file, args.src_cut_ss, args.src_cut_to, args.src_cut_ofs, args.src_cut_len, \
-            fps_detail, args.screen_width, args.screen_height, args.view_width, args.view_height, args.no_deband) != 0:
+            fps_detail, args.screen_width, args.view_width, args.view_height, args.no_deband) != 0:
     return 1
 
-  if stage3(args.rmv_name, output_bmp_dir, args.screen_width, args.screen_height, args.view_width, args.view_height, \
+  if stage3(args.rmv_name, output_bmp_dir, args.screen_width, args.view_width, args.view_height, \
             args.use_ibit, raw_file):
     return 1
 
