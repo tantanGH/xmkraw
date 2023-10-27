@@ -6,7 +6,9 @@ import re
 
 from PIL import Image
 
-
+#
+#  pcm to adpcm converter class
+#
 class ADPCM:
 
   step_adjust = [ -1, -1, -1, -1, 2, 4, 6, 8, -1, -1, -1, -1, 2, 4, 6, 8 ]
@@ -155,10 +157,12 @@ class ADPCM:
 
     return 0
 
-
+#
+#  bmp to raw converter class
+#
 class BMPtoRAW:
 
-  def convert(self, screen_width, src_image_dir, use_ibit, output_file):
+  def convert(self, output_file, src_image_dir, screen_width, screen_height, view_width, view_height, use_ibit):
 
     rc = 0
 
@@ -169,6 +173,8 @@ class BMPtoRAW:
       bmp_files = sorted(os.listdir(src_image_dir))
       written_frames = 0
 
+      ofs_x = ( screen_width - view_width ) // 2
+
       for i, bmp_name in enumerate(bmp_files):
 
         if bmp_name.lower().endswith(".bmp"):
@@ -176,8 +182,8 @@ class BMPtoRAW:
           im = Image.open(src_image_dir + os.sep + bmp_name)
 
           im_width, im_height = im.size
-          if im_width != screen_width:
-            print("error: bmp width is not same as screen width.")
+          if im_width != view_width:
+            print("error: bmp width is not same as view width.")
             return rc
 
           im_bytes = im.tobytes()
@@ -199,8 +205,8 @@ class BMPtoRAW:
                 else:
                   if c > 0:
                     c += 1
-                grm_bytes[ y * 512 * 2 + x * 2 + 0 ] = c // 256
-                grm_bytes[ y * 512 * 2 + x * 2 + 1 ] = c % 256
+                grm_bytes[ y * 512 * 2 + (ofs_x + x) * 2 + 0 ] = c // 256
+                grm_bytes[ y * 512 * 2 + (ofs_x + x) * 2 + 1 ] = c % 256
             f.write(grm_bytes)
             written_frames += 1
             print(".", end="", flush=True)
@@ -224,8 +230,8 @@ class BMPtoRAW:
                   else:
                     if c > 0:
                       c += 1
-                  grm_bytes[ y * 512 * 2 + x * 2 + 0 ] = c // 256
-                  grm_bytes[ y * 512 * 2 + x * 2 + 1 ] = c % 256
+                  grm_bytes[ y * 512 * 2 + (ofs_x + x) * 2 + 0 ] = c // 256
+                  grm_bytes[ y * 512 * 2 + (ofs_x + x) * 2 + 1 ] = c % 256
               frame0 = True
             else:
               for y in range(im_height):
@@ -243,8 +249,8 @@ class BMPtoRAW:
                   else:
                     if c > 0:
                       c += 1
-                  grm_bytes[ y * 512 * 2 + 256 * 2 + x * 2 + 0 ] = c // 256
-                  grm_bytes[ y * 512 * 2 + 256 * 2 + x * 2 + 1 ] = c % 256
+                  grm_bytes[ y * 512 * 2 + 256 * 2 + (ofs_x + x) * 2 + 0 ] = c // 256
+                  grm_bytes[ y * 512 * 2 + 256 * 2 + (ofs_x + x) * 2 + 1 ] = c % 256
               f.write(grm_bytes)
               frame0 = False
               written_frames += 2
@@ -264,7 +270,9 @@ class BMPtoRAW:
 
     return rc
 
-
+#
+#  fps class
+#
 class FPS:
 
   fps_detail_256 = {
@@ -292,6 +300,9 @@ class FPS:
       return FPS.fps_detail_256[fps]
 
 
+#
+#  stage 1 mov to adpcm/pcm
+#
 def stage1(rmv_name, src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len, pcm_volume, pcm_peak_max, pcm_avg_min, pcm_freq, pcm_file, pcm_file2, adpcm_freq, adpcm_file):
 
   print("[STAGE 1] started.")
@@ -314,10 +325,18 @@ def stage1(rmv_name, src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len,
 
   return 0
 
-
-def stage2(rmv_name, output_bmp_dir, src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len, fps_detail, screen_width, view_height, no_deband):
+#
+#  stage2 mov to bmp
+#
+def stage2(rmv_name, output_bmp_dir, src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len, fps_detail, screen_width, screen_height, view_width, view_height, no_deband):
 
   print("[STAGE 2] started.")
+
+  if view_width is None:
+    view_width = screen_width
+  elif view_width > screen_width:
+    print("error: view_width is too large.")
+    return 1
 
   os.makedirs(output_bmp_dir, exist_ok=True)
 
@@ -331,7 +350,7 @@ def stage2(rmv_name, output_bmp_dir, src_file, src_cut_ss, src_cut_to, src_cut_o
     deband_filter=",deband=1thr=0.02:2thr=0.02:3thr=0.02:blur=1"
 
   opt = f"-ss {src_cut_ss} -to {src_cut_to} -i {src_file} -ss {src_cut_ofs} -t {src_cut_len} " + \
-        f"-filter_complex '[0:v] fps={fps_detail},scale={screen_width}:{view_height}{deband_filter}' " + \
+        f"-filter_complex '[0:v] fps={fps_detail},scale={view_width}:{view_height}{deband_filter}' " + \
         f"-vcodec bmp -pix_fmt rgb565 '{output_bmp_dir}/output_%05d.bmp'"
 
   if os.system(f"ffmpeg {opt}") != 0:
@@ -342,14 +361,17 @@ def stage2(rmv_name, output_bmp_dir, src_file, src_cut_ss, src_cut_to, src_cut_o
 
   return 0
 
-
-def stage3(rmv_name, output_bmp_dir, screen_width, use_ibit, raw_file):
+#
+#  stage 3 bmp to raw
+#
+def stage3(rmv_name, output_bmp_dir, screen_width, screen_height, view_width, view_height, use_ibit, raw_file):
 
   print("[STAGE 3] started.")
 
-  bmp2raw = BMPtoRAW()
+  if view_width is None:
+    view_width = screen_width
 
-  if bmp2raw.convert(screen_width, output_bmp_dir, use_ibit, raw_file) != 0:
+  if BMPtoRAW().convert(raw_file, output_bmp_dir, screen_width, screen_height, view_width, view_height, use_ibit) != 0:
     print("error: BMP to RAW conversion failed.")
     return 1
   
@@ -357,7 +379,9 @@ def stage3(rmv_name, output_bmp_dir, screen_width, use_ibit, raw_file):
 
   return 0
 
-
+#
+#  main
+#
 def main():
 
   parser = argparse.ArgumentParser()
@@ -369,6 +393,8 @@ def main():
   parser.add_argument("-cl", "--src_cut_len", help="source cut length", default="00:04:59.500")
   parser.add_argument("-fps", help="frame per second", type=int, default=24)
   parser.add_argument("-sw", "--screen_width", help="screen width", type=int, default=384)
+  parser.add_argument("-sh", "--screen_height", help="screen height", type=int, default=256)
+  parser.add_argument("-vw", "--view_width", help="view width", type=int, default=None)
   parser.add_argument("-vh", "--view_height", help="view height", type=int, default=200)
   parser.add_argument("-pv", "--pcm_volume", help="pcm volume", type=float, default=1.0)
   parser.add_argument("-pf", "--pcm_freq", help="pcm frequency", type=int, default=48000)
@@ -395,13 +421,17 @@ def main():
     print("error: unknown fps")
     return 1
 
-  if stage1(args.rmv_name, args.src_file, args.src_cut_ss, args.src_cut_to, args.src_cut_ofs, args.src_cut_len, args.pcm_volume, args.pcm_peak_max, args.pcm_avg_min, args.pcm_freq, pcm_file, pcm_file2, args.adpcm_freq, adpcm_file) != 0:
+  if stage1(args.rmv_name, args.src_file, args.src_cut_ss, args.src_cut_to, args.src_cut_ofs, args.src_cut_len, \
+            args.pcm_volume, args.pcm_peak_max, args.pcm_avg_min, args.pcm_freq, \
+            pcm_file, pcm_file2, args.adpcm_freq, adpcm_file) != 0:
     return 1
   
-  if stage2(args.rmv_name, output_bmp_dir, args.src_file, args.src_cut_ss, args.src_cut_to, args.src_cut_ofs, args.src_cut_len, fps_detail, args.screen_width, args.view_height, args.no_deband) != 0:
+  if stage2(args.rmv_name, output_bmp_dir, args.src_file, args.src_cut_ss, args.src_cut_to, args.src_cut_ofs, args.src_cut_len, \
+            fps_detail, args.screen_width, args.screen_height, args.view_width, args.view_height, args.no_deband) != 0:
     return 1
 
-  if stage3(args.rmv_name, output_bmp_dir, args.screen_width, args.use_ibit, raw_file):
+  if stage3(args.rmv_name, output_bmp_dir, args.screen_width, args.screen_height, args.view_width, args.view_height, \
+            args.use_ibit, raw_file):
     return 1
 
   with open(rmv_pcm_file, "w") as f:
