@@ -309,11 +309,10 @@ def stage1(src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len, \
   print("[STAGE 1] started.")
 
   opt = f"-y -ss {src_cut_ss} -to {src_cut_to} -i {src_file} " + \
-        f"-f s16be -acodec pcm_s16be -filter:a 'volume={pcm_volume}' -ar {adpcm_freq} -ac 1 -ss {src_cut_ofs} -t {src_cut_len} {adpcm_wip_file} " 
-#        f"-f s16be -acodec pcm_s16be -filter:a 'volume={pcm_volume},lowpass=f={adpcm_freq}' -ar {adpcm_freq} -ac 1 -ss {src_cut_ofs} -t {src_cut_len} {adpcm_wip_file} " 
+        f"-f s16be -acodec pcm_s16be -filter:a \"volume={pcm_volume},lowpass=f={adpcm_freq}\" -ar {adpcm_freq} -ac 1 -ss {src_cut_ofs} -t {src_cut_len} {adpcm_wip_file} "
 
   if pcm_freq:
-    opt += f"-f s16be -acodec pcm_s16be -filter:a 'volume={pcm_volume}' -ar {pcm_freq} -ac 2 -ss {src_cut_ofs} -t {src_cut_len} {pcm_data_file}  " \
+    opt += f"-f s16be -acodec pcm_s16be -filter:a \"volume={pcm_volume}\" -ar {pcm_freq} -ac 2 -ss {src_cut_ofs} -t {src_cut_len} {pcm_data_file}  " \
   
   if os.system(f"ffmpeg {opt}") != 0:
     print("error: ffmpeg failed.")
@@ -355,8 +354,8 @@ def stage2(src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len, \
     deband_filter=",deband=1thr=0.02:2thr=0.02:3thr=0.02:blur=1"
 
   opt = f"-ss {src_cut_ss} -to {src_cut_to} -i {src_file} -ss {src_cut_ofs} -t {src_cut_len} " + \
-        f"-filter_complex '[0:v] fps={fps_detail},scale={view_width}:{view_height}{deband_filter}' " + \
-        f"-vcodec bmp -pix_fmt rgb565 '{output_bmp_dir}/output_%05d.bmp'"
+        f"-filter_complex \"[0:v] fps={fps_detail},scale={view_width}:{view_height}{deband_filter}\" " + \
+        f"-vcodec bmp -pix_fmt rgb565 \"{output_bmp_dir}/output_%05d.bmp\""
 
   if os.system(f"ffmpeg {opt}") != 0:
     print("error: ffmpeg failed.")
