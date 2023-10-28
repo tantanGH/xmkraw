@@ -350,12 +350,14 @@ def stage2(src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len, \
   
   if no_deband:
     deband_filter=""
+    deband_filter2=""
   else:
     deband_filter=",deband=1thr=0.02:2thr=0.02:3thr=0.02:blur=1"
+    deband_filter2="-pix_fmt rgb565"
 
   opt = f"-ss {src_cut_ss} -to {src_cut_to} -i {src_file} -ss {src_cut_ofs} -t {src_cut_len} " + \
         f"-filter_complex \"[0:v] fps={fps_detail},scale={view_width}:{view_height}{deband_filter}\" " + \
-        f"-vcodec bmp -pix_fmt rgb565 \"{output_bmp_dir}/output_%05d.bmp\""
+        f"-vcodec bmp {deband_filter2} \"{output_bmp_dir}/output_%05d.bmp\""
 
   if os.system(f"ffmpeg {opt}") != 0:
     print("error: ffmpeg failed.")

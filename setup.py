@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="xmkraw",
-    version="0.2.7",
+    version="0.2.8",
     author="tantanGH",
     author_email="tantanGH@github",
     license='MIT',
