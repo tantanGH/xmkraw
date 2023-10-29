@@ -332,7 +332,7 @@ def stage1(src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len, \
 #  stage2 mov to bmp
 #
 def stage2(src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len, \
-           fps_detail, screen_width, view_width, view_height, no_deband, output_bmp_dir):
+           fps_detail, screen_width, view_width, view_height, deband, output_bmp_dir):
 
   print("[STAGE 2] started.")
 
@@ -348,12 +348,12 @@ def stage2(src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len, \
     if os.path.isfile(p):
       os.remove(p)
   
-  if no_deband:
-    deband_filter=""
-    deband_filter2=""
-  else:
+  if deband:
     deband_filter=",deband=1thr=0.02:2thr=0.02:3thr=0.02:blur=1"
     deband_filter2="-pix_fmt rgb565"
+  else:
+    deband_filter=""
+    deband_filter2=""
 
   opt = f"-ss {src_cut_ss} -to {src_cut_to} -i {src_file} -ss {src_cut_ofs} -t {src_cut_len} " + \
         f"-filter_complex \"[0:v] fps={fps_detail},scale={view_width}:{view_height}{deband_filter}\" " + \
@@ -407,7 +407,7 @@ def main():
   parser.add_argument("-pf", "--pcm_freq", help="16bit pcm frequency", type=int, default=None, choices=[None, 16000, 22050, 24000, 32000, 44100, 48000])
   parser.add_argument("-af", "--adpcm_freq", help="adpcm frequency", type=int, default=15625, choices=[15625, 31250])
   parser.add_argument("-ib", "--use_ibit", help="use i bit for color reduction", action='store_true')
-  parser.add_argument("-nd", "--no_deband", help="disable debanding filter", action='store_true')
+  parser.add_argument("-db", "--deband", help="use debanding filter", action='store_true')
   parser.add_argument("-bm", "--preserve_bmp", help="preserve output bmp folder", action='store_true')
 
   args = parser.parse_args()
@@ -435,7 +435,7 @@ def main():
     return 1
   
   if stage2(args.src_file, args.src_cut_ss, args.src_cut_to, args.src_cut_ofs, args.src_cut_len, \
-            fps_detail, args.screen_width, args.view_width, args.view_height, args.no_deband, \
+            fps_detail, args.screen_width, args.view_width, args.view_height, args.deband, \
             output_bmp_dir) != 0:
     return 1
 
