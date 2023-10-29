@@ -442,7 +442,7 @@ def main():
   if stage3(output_bmp_dir, args.screen_width, args.view_width, args.view_height, args.use_ibit, raw_data_file):
     return 1
 
-  adpcm_rmv_file = f"{args.rmv_name}_p31.rmv" if args.adpcm_freq == 31250 else f"{args.rmv_name}_pcm.rmv"
+  adpcm_rmv_file = f"{args.rmv_name}_p31.rmv" if args.adpcm_freq == 31250 else f"{args.rmv_name}.rmv"
   colors = 65536 if args.use_ibit else 32768
   with open(adpcm_rmv_file, "w") as f:
     f.write(f"{args.screen_width}\n")
