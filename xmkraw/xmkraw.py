@@ -303,12 +303,15 @@ class FPS:
 #
 #  stage 1 mov to adpcm/pcm
 #
-def stage1(src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len, \
+def stage1(src_file, src_cut_ofs, src_cut_len, \
            pcm_volume, pcm_peak_max, pcm_avg_min, pcm_freq, pcm_data_file, adpcm_freq, adpcm_wip_file, adpcm_data_file):
 
   print("[STAGE 1] started.")
 
-  opt = f"-y -ss {src_cut_ss} -to {src_cut_to} -i {src_file} " + \
+  #cut_ss = f"-ss {src_cut_ss}" if src_cut_ss else ""
+  #cut_to = f"-to {src_cut_to}" if src_cut_to else ""
+
+  opt = f"-y -i {src_file} " + \
         f"-f s16be -acodec pcm_s16be -filter:a \"volume={pcm_volume},lowpass=f={adpcm_freq}\" -ar {adpcm_freq} -ac 1 -ss {src_cut_ofs} -t {src_cut_len} {adpcm_wip_file} "
 
   if pcm_freq:
@@ -331,8 +334,7 @@ def stage1(src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len, \
 #
 #  stage2 mov to bmp
 #
-def stage2(src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len, \
-           fps_detail, screen_width, view_width, view_height, deband, output_bmp_dir):
+def stage2(src_file, src_cut_ofs, src_cut_len, fps_detail, screen_width, view_width, view_height, deband, output_bmp_dir):
 
   print("[STAGE 2] started.")
 
@@ -355,7 +357,10 @@ def stage2(src_file, src_cut_ss, src_cut_to, src_cut_ofs, src_cut_len, \
     deband_filter=""
     deband_filter2=""
 
-  opt = f"-ss {src_cut_ss} -to {src_cut_to} -i {src_file} -ss {src_cut_ofs} -t {src_cut_len} " + \
+#  cut_ss = f"-ss {src_cut_ss}" if src_cut_ss else ""
+#  cut_to = f"-to {src_cut_to}" if src_cut_to else ""
+
+  opt = f"-y -i {src_file} -ss {src_cut_ofs} -t {src_cut_len} " + \
         f"-filter_complex \"[0:v] fps={fps_detail},scale={view_width}:{view_height}{deband_filter}\" " + \
         f"-vcodec bmp {deband_filter2} \"{output_bmp_dir}/output_%05d.bmp\""
 
@@ -394,8 +399,8 @@ def main():
   parser.add_argument("src_file", help="source movie file")
   parser.add_argument("rmv_name", help="target rawmv base name")
   parser.add_argument("-fps", help="frame per second", type=int, default=24, choices=[2,3,4,5,6,10,12,15,20,24,30])
-  parser.add_argument("-cs", "--src_cut_ss", help="source cut start timestamp", default="00:00:00.000")
-  parser.add_argument("-ct", "--src_cut_to", help="source cut end timestamp", default="00:06:00.000")
+  #parser.add_argument("-cs", "--src_cut_ss", help="source cut start timestamp", default="00:00:00.000")
+  #parser.add_argument("-ct", "--src_cut_to", help="source cut end timestamp", default="00:06:00.000")
   parser.add_argument("-co", "--src_cut_ofs", help="source cut start offset", default="00:00:00.000")
   parser.add_argument("-cl", "--src_cut_len", help="source cut length", default="00:04:59.500")
   parser.add_argument("-sw", "--screen_width", help="screen width", type=int, default=384, choices=[256, 384, 512])
@@ -429,12 +434,12 @@ def main():
     print("error: unknown fps")
     return 1
 
-  if stage1(args.src_file, args.src_cut_ss, args.src_cut_to, args.src_cut_ofs, args.src_cut_len, \
+  if stage1(args.src_file, args.src_cut_ofs, args.src_cut_len, \
             args.pcm_volume, args.pcm_peak_max, args.pcm_avg_min, args.pcm_freq, pcm_data_file, \
             args.adpcm_freq, adpcm_wip_file, adpcm_data_file) != 0:
     return 1
   
-  if stage2(args.src_file, args.src_cut_ss, args.src_cut_to, args.src_cut_ofs, args.src_cut_len, \
+  if stage2(args.src_file, args.src_cut_ofs, args.src_cut_len, \
             fps_detail, args.screen_width, args.view_width, args.view_height, args.deband, \
             output_bmp_dir) != 0:
     return 1
