@@ -402,7 +402,7 @@ def main():
   #parser.add_argument("-cs", "--src_cut_ss", help="source cut start timestamp", default="00:00:00.000")
   #parser.add_argument("-ct", "--src_cut_to", help="source cut end timestamp", default="00:06:00.000")
   parser.add_argument("-co", "--src_cut_ofs", help="source cut start offset", default="00:00:00.000")
-  parser.add_argument("-cl", "--src_cut_len", help="source cut length", default="00:30:00.000")
+  parser.add_argument("-cl", "--src_cut_len", help="source cut length", default="01:00:00.000")
   parser.add_argument("-sw", "--screen_width", help="screen width", type=int, default=384, choices=[256, 384, 512])
   parser.add_argument("-vw", "--view_width", help="view width", type=int, default=None)
   parser.add_argument("-vh", "--view_height", help="view height", type=int, default=200)
