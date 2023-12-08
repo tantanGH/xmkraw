@@ -162,7 +162,7 @@ class ADPCM:
 #
 class BMPtoRAW:
 
-  def convert(self, output_file, src_image_dir, screen_width, screen_height, view_width, view_height, use_ibit):
+  def convert(self, output_file, src_image_dir, screen_width, screen_height, view_width, view_height, use_ibit, rotate):
 
     rc = 0
 
@@ -182,39 +182,97 @@ class BMPtoRAW:
           im = Image.open(src_image_dir + os.sep + bmp_name)
 
           im_width, im_height = im.size
-          if im_width != view_width:
+          if rotate == 0 and im_width != view_width:
             print("error: bmp width is not same as view width.")
             return rc
 
           im_bytes = im.tobytes()
 
-          if screen_width == 384 or screen_width == 512:
-            grm_bytes = bytearray(512 * im_height * 2)
-            for y in range(im_height):
-              for x in range(im_width):
-                r = im_bytes[ (y * im_width + x) * 3 + 0 ] >> 3
-                g = im_bytes[ (y * im_width + x) * 3 + 1 ] >> 3
-                b = im_bytes[ (y * im_width + x) * 3 + 2 ] >> 3
-                c = (g << 11) | (r << 6) | (b << 1)
-                if use_ibit:
-                  #re = im_bytes[ (y * im_width + x) * 3 + 0 ] % 8
-                  ge = im_bytes[ (y * im_width + x) * 3 + 1 ] % 8
-                  #if re >= 4 and ge >= 4:
-                  if ge >= 4:
-                    c += 1
-                else:
-                  if c > 0:
-                    c += 1
-                grm_bytes[ y * 512 * 2 + (ofs_x + x) * 2 + 0 ] = c // 256
-                grm_bytes[ y * 512 * 2 + (ofs_x + x) * 2 + 1 ] = c % 256
-            f.write(grm_bytes)
-            written_frames += 1
-            print(".", end="", flush=True)
+          if rotate >= 1:
+
+            if screen_width == 384 or screen_width == 512:
+              grm_bytes = bytearray(512 * im_height * 2)
+              if rotate == 1:
+                yl = range(im_width)
+                xl = reversed(range(im_height))
+              else:
+                yl = reversed(range(im_width))
+                xl = range(im_height)
+              for y in yl:
+                for x in xl:
+                  r = im_bytes[ (x * im_width + y) * 3 + 0 ] >> 3
+                  g = im_bytes[ (x * im_width + y) * 3 + 1 ] >> 3
+                  b = im_bytes[ (x * im_width + y) * 3 + 2 ] >> 3
+                  c = (g << 11) | (r << 6) | (b << 1)
+                  if use_ibit:
+                    ge = im_bytes[ (y * im_width + x) * 3 + 1 ] % 8
+                    if ge >= 4:
+                      c += 1
+                  else:
+                    if c > 0:
+                      c += 1
+                  grm_bytes[ y * 512 * 2 + (ofs_x + x) * 2 + 0 ] = c // 256
+                  grm_bytes[ y * 512 * 2 + (ofs_x + x) * 2 + 1 ] = c % 256
+              f.write(grm_bytes)
+              written_frames += 1
+              print(".", end="", flush=True)
+
+            else:
+
+              if rotate == 1:
+                yl = range(im_width)
+                xl = reversed(range(im_height))
+              else:
+                yl = reversed(range(im_width))
+                xl = range(im_height)
+
+              if frame0 is False:
+                grm_bytes = bytearray(256 * im_height * 2 * 2)
+                for y in yl:
+                  for x in xl:
+                    r = im_bytes[ (x * im_width + y) * 3 + 0 ] >> 3
+                    g = im_bytes[ (x * im_width + y) * 3 + 1 ] >> 3
+                    b = im_bytes[ (x * im_width + y) * 3 + 2 ] >> 3
+                    c = (g << 11) | (r << 6) | (b << 1)
+                    if use_ibit:
+                      #re = im_bytes[ (y * im_width + x) * 3 + 0 ] % 8
+                      ge = im_bytes[ (y * im_width + x) * 3 + 1 ] % 8
+                      #if re >= 4 and ge >= 4:
+                      if ge >= 4:
+                        c += 1
+                    else:
+                      if c > 0:
+                        c += 1
+                    grm_bytes[ y * 512 * 2 + (ofs_x + x) * 2 + 0 ] = c // 256
+                    grm_bytes[ y * 512 * 2 + (ofs_x + x) * 2 + 1 ] = c % 256
+                frame0 = True
+              else:
+                for y in yl:
+                  for x in xl:
+                    r = im_bytes[ (x * im_width + y) * 3 + 0 ] >> 3
+                    g = im_bytes[ (x * im_width + y) * 3 + 1 ] >> 3
+                    b = im_bytes[ (x * im_width + y) * 3 + 2 ] >> 3
+                    c = (g << 11) | (r << 6) | (b << 1)
+                    if use_ibit:
+                      #re = im_bytes[ (y * im_width + x) * 3 + 0 ] % 8
+                      ge = im_bytes[ (y * im_width + x) * 3 + 1 ] % 8
+                      #if re >= 4 and ge >= 4:
+                      if ge >= 4:
+                        c += 1
+                    else:
+                      if c > 0:
+                        c += 1
+                    grm_bytes[ y * 512 * 2 + 256 * 2 + (ofs_x + x) * 2 + 0 ] = c // 256
+                    grm_bytes[ y * 512 * 2 + 256 * 2 + (ofs_x + x) * 2 + 1 ] = c % 256
+                f.write(grm_bytes)
+                frame0 = False
+                written_frames += 2
+                print("..", end="", flush=True)
 
           else:
 
-            if frame0 is False:
-              grm_bytes = bytearray(256 * im_height * 2 * 2)
+            if screen_width == 384 or screen_width == 512:
+              grm_bytes = bytearray(512 * im_height * 2)
               for y in range(im_height):
                 for x in range(im_width):
                   r = im_bytes[ (y * im_width + x) * 3 + 0 ] >> 3
@@ -232,29 +290,54 @@ class BMPtoRAW:
                       c += 1
                   grm_bytes[ y * 512 * 2 + (ofs_x + x) * 2 + 0 ] = c // 256
                   grm_bytes[ y * 512 * 2 + (ofs_x + x) * 2 + 1 ] = c % 256
-              frame0 = True
-            else:
-              for y in range(im_height):
-                for x in range(im_width):
-                  r = im_bytes[ (y * im_width + x) * 3 + 0 ] >> 3
-                  g = im_bytes[ (y * im_width + x) * 3 + 1 ] >> 3
-                  b = im_bytes[ (y * im_width + x) * 3 + 2 ] >> 3
-                  c = (g << 11) | (r << 6) | (b << 1)
-                  if use_ibit:
-                    #re = im_bytes[ (y * im_width + x) * 3 + 0 ] % 8
-                    ge = im_bytes[ (y * im_width + x) * 3 + 1 ] % 8
-                    #if re >= 4 and ge >= 4:
-                    if ge >= 4:
-                      c += 1
-                  else:
-                    if c > 0:
-                      c += 1
-                  grm_bytes[ y * 512 * 2 + 256 * 2 + (ofs_x + x) * 2 + 0 ] = c // 256
-                  grm_bytes[ y * 512 * 2 + 256 * 2 + (ofs_x + x) * 2 + 1 ] = c % 256
               f.write(grm_bytes)
-              frame0 = False
-              written_frames += 2
-              print("..", end="", flush=True)
+              written_frames += 1
+              print(".", end="", flush=True)
+
+            else:
+
+              if frame0 is False:
+                grm_bytes = bytearray(256 * im_height * 2 * 2)
+                for y in range(im_height):
+                  for x in range(im_width):
+                    r = im_bytes[ (y * im_width + x) * 3 + 0 ] >> 3
+                    g = im_bytes[ (y * im_width + x) * 3 + 1 ] >> 3
+                    b = im_bytes[ (y * im_width + x) * 3 + 2 ] >> 3
+                    c = (g << 11) | (r << 6) | (b << 1)
+                    if use_ibit:
+                      #re = im_bytes[ (y * im_width + x) * 3 + 0 ] % 8
+                      ge = im_bytes[ (y * im_width + x) * 3 + 1 ] % 8
+                      #if re >= 4 and ge >= 4:
+                      if ge >= 4:
+                        c += 1
+                    else:
+                      if c > 0:
+                        c += 1
+                    grm_bytes[ y * 512 * 2 + (ofs_x + x) * 2 + 0 ] = c // 256
+                    grm_bytes[ y * 512 * 2 + (ofs_x + x) * 2 + 1 ] = c % 256
+                frame0 = True
+              else:
+                for y in range(im_height):
+                  for x in range(im_width):
+                    r = im_bytes[ (y * im_width + x) * 3 + 0 ] >> 3
+                    g = im_bytes[ (y * im_width + x) * 3 + 1 ] >> 3
+                    b = im_bytes[ (y * im_width + x) * 3 + 2 ] >> 3
+                    c = (g << 11) | (r << 6) | (b << 1)
+                    if use_ibit:
+                      #re = im_bytes[ (y * im_width + x) * 3 + 0 ] % 8
+                      ge = im_bytes[ (y * im_width + x) * 3 + 1 ] % 8
+                      #if re >= 4 and ge >= 4:
+                      if ge >= 4:
+                        c += 1
+                    else:
+                      if c > 0:
+                        c += 1
+                    grm_bytes[ y * 512 * 2 + 256 * 2 + (ofs_x + x) * 2 + 0 ] = c // 256
+                    grm_bytes[ y * 512 * 2 + 256 * 2 + (ofs_x + x) * 2 + 1 ] = c % 256
+                f.write(grm_bytes)
+                frame0 = False
+                written_frames += 2
+                print("..", end="", flush=True)
 
       # drain
       if screen_width == 256 and frame0 and written_frames == len(bmp_files) - 1:
@@ -352,6 +435,9 @@ def stage2(src_file, src_cut_ofs, src_cut_len, fps_detail, screen_width, view_wi
     print("error: view_width is too large.")
     return 1
 
+  if rotate >= 1:
+    view_width, view_height = view_height, view_width
+
   os.makedirs(output_bmp_dir, exist_ok=True)
 
   for p in glob.glob(f"{output_bmp_dir}{os.sep}*.bmp"):
@@ -370,16 +456,8 @@ def stage2(src_file, src_cut_ofs, src_cut_len, fps_detail, screen_width, view_wi
     deband_filter=""
     deband_filter2=""
 
-  if rotate >= 1:
-    rotate_filter=f",transpose={rotate}"
-  else:
-    rotate_filter=""
-
-#  cut_ss = f"-ss {src_cut_ss}" if src_cut_ss else ""
-#  cut_to = f"-to {src_cut_to}" if src_cut_to else ""
-
   opt = f"-y -i {src_file} -ss {src_cut_ofs} -t {src_cut_len} " + \
-        f"-filter_complex \"[0:v] fps={fps_detail},scale={view_width}:{view_height}{rotate_filter}{sharpness_filter}{deband_filter}\" " + \
+        f"-filter_complex \"[0:v] fps={fps_detail},scale={view_width}:{view_height}{sharpness_filter}{deband_filter}\" " + \
         f"-vcodec bmp {deband_filter2} \"{output_bmp_dir}/output_%05d.bmp\""
 
   if os.system(f"ffmpeg {opt}") != 0:
@@ -393,14 +471,14 @@ def stage2(src_file, src_cut_ofs, src_cut_len, fps_detail, screen_width, view_wi
 #
 #  stage 3 bmp to raw
 #
-def stage3(output_bmp_dir, screen_width, view_width, view_height, use_ibit, raw_data_file):
+def stage3(output_bmp_dir, screen_width, view_width, view_height, use_ibit, rotate, raw_data_file):
 
   print("[STAGE 3] started.")
 
   if view_width is None:
     view_width = screen_width
 
-  if BMPtoRAW().convert(raw_data_file, output_bmp_dir, screen_width, 256, view_width, view_height, use_ibit) != 0:
+  if BMPtoRAW().convert(raw_data_file, output_bmp_dir, screen_width, 256, view_width, view_height, use_ibit, rotate) != 0:
     print("error: BMP to RAW conversion failed.")
     return 1
   
@@ -462,7 +540,7 @@ def main():
             output_bmp_dir) != 0:
     return 1
 
-  if stage3(output_bmp_dir, args.screen_width, args.view_width, args.view_height, args.use_ibit, raw_data_file):
+  if stage3(output_bmp_dir, args.screen_width, args.view_width, args.view_height, args.use_ibit, args.rotate, raw_data_file):
     return 1
 
   adpcm_rmv_file = f"{args.rmv_name}_p31.rmv" if args.adpcm_freq == 31250 else f"{args.rmv_name}.rmv"
