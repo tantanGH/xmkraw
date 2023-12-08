@@ -345,7 +345,7 @@ def stage1(src_file, src_cut_ofs, src_cut_len, \
 #
 #  stage2 mov to bmp
 #
-def stage2(src_file, src_cut_ofs, src_cut_len, fps_detail, screen_width, view_width, view_height, deband, output_bmp_dir):
+def stage2(src_file, src_cut_ofs, src_cut_len, fps_detail, screen_width, view_width, view_height, deband, sharpness, rotate, output_bmp_dir):
 
   print("[STAGE 2] started.")
 
@@ -361,6 +361,11 @@ def stage2(src_file, src_cut_ofs, src_cut_len, fps_detail, screen_width, view_wi
     if os.path.isfile(p):
       os.remove(p)
   
+  if sharpness > 0.0:
+    sharpness_filter=f",unsharp=3:3:{sharpness}:3:3:0"
+  else:
+    sharpness_filter=""
+
   if deband:
     deband_filter=",deband=1thr=0.02:2thr=0.02:3thr=0.02:blur=1"
     deband_filter2="-pix_fmt rgb565"
@@ -368,11 +373,16 @@ def stage2(src_file, src_cut_ofs, src_cut_len, fps_detail, screen_width, view_wi
     deband_filter=""
     deband_filter2=""
 
+  if rotate >= 1:
+    rotate_filter=f",transpose={rotate}"
+  else:
+    rotate_filter=""
+
 #  cut_ss = f"-ss {src_cut_ss}" if src_cut_ss else ""
 #  cut_to = f"-to {src_cut_to}" if src_cut_to else ""
 
   opt = f"-y -i {src_file} -ss {src_cut_ofs} -t {src_cut_len} " + \
-        f"-filter_complex \"[0:v] fps={fps_detail},scale={view_width}:{view_height}{deband_filter}\" " + \
+        f"-filter_complex \"[0:v] fps={fps_detail},scale={view_width}:{view_height}{rotate_filter}{sharpness_filter}{deband_filter}\" " + \
         f"-vcodec bmp {deband_filter2} \"{output_bmp_dir}/output_%05d.bmp\""
 
   if os.system(f"ffmpeg {opt}") != 0:
@@ -424,6 +434,8 @@ def main():
   parser.add_argument("-af", "--adpcm_freq", help="adpcm frequency", type=int, default=15625, choices=[15625, 31250])
   parser.add_argument("-ib", "--use_ibit", help="use i bit for color reduction", action='store_true')
   parser.add_argument("-db", "--deband", help="use debanding filter", action='store_true')
+  parser.add_argument("-sp", "--sharpness", help="sharpness (max 1.5)", type=float, default=0.6)
+  parser.add_argument("-rt", "--rotate", help="rotate (1:right, 2:left)", type=int, default=0, choices=[0, 1, 2])
   parser.add_argument("-bm", "--preserve_bmp", help="preserve output bmp folder", action='store_true')
 
   args = parser.parse_args()
