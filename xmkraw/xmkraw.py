@@ -173,7 +173,10 @@ class BMPtoRAW:
       bmp_files = sorted(os.listdir(src_image_dir))
       written_frames = 0
 
-      ofs_x = ( screen_width - view_width ) // 2
+      if rotate >= 1:
+        ofs_x = ( screen_width - view_height ) // 2
+      else:
+        ofs_x = ( screen_width - view_width ) // 2
 
       for i, bmp_name in enumerate(bmp_files):
 
@@ -182,6 +185,9 @@ class BMPtoRAW:
           im = Image.open(src_image_dir + os.sep + bmp_name)
 
           im_width, im_height = im.size
+          if rotate >= 1 and im_width != view_height:
+            print("error: bmp width is not same as view height.")
+            return rc
           if rotate == 0 and im_width != view_width:
             print("error: bmp width is not same as view width.")
             return rc
