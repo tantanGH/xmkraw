@@ -173,10 +173,7 @@ class BMPtoRAW:
       bmp_files = sorted(os.listdir(src_image_dir))
       written_frames = 0
 
-      if rotate >= 1:
-        ofs_x = ( screen_width - view_height ) // 2
-      else:
-        ofs_x = ( screen_width - view_width ) // 2
+      ofs_x = ( screen_width - view_width ) // 2
 
       for i, bmp_name in enumerate(bmp_files):
 
@@ -197,7 +194,7 @@ class BMPtoRAW:
           if rotate >= 1:
 
             if screen_width == 384 or screen_width == 512:
-              grm_bytes = bytearray(512 * im_height * 2)
+              grm_bytes = bytearray(512 * im_width * 2)
               for y in range(im_width):
                 for x in range(im_height):
                   if rotate == 1:
@@ -228,7 +225,7 @@ class BMPtoRAW:
             else:
 
               if frame0 is False:
-                grm_bytes = bytearray(256 * im_height * 2 * 2)
+                grm_bytes = bytearray(256 * im_width * 2 * 2)
                 for y in range(im_width):
                   for x in range(im_height):
                     if rotate == 1:
