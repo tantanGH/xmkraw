@@ -192,20 +192,22 @@ class BMPtoRAW:
 
             if screen_width == 384 or screen_width == 512:
               grm_bytes = bytearray(512 * im_height * 2)
-              if rotate == 1:
-                yl = range(im_width)
-                xl = reversed(range(im_height))
-              else:
-                yl = reversed(range(im_width))
-                xl = range(im_height)
-              for y in yl:
-                for x in xl:
-                  r = im_bytes[ (x * im_width + y) * 3 + 0 ] >> 3
-                  g = im_bytes[ (x * im_width + y) * 3 + 1 ] >> 3
-                  b = im_bytes[ (x * im_width + y) * 3 + 2 ] >> 3
+              for y in range(im_width):
+                for x in range(im_height):
+                  if rotate == 1:
+                    r = im_bytes[ ((im_height - 1 - x) * im_width + y) * 3 + 0 ] >> 3
+                    g = im_bytes[ ((im_height - 1 - x) * im_width + y) * 3 + 1 ] >> 3
+                    b = im_bytes[ ((im_height - 1 - x) * im_width + y) * 3 + 2 ] >> 3
+                  else:
+                    r = im_bytes[ (x * im_width + im_width - 1 - y) * 3 + 0 ] >> 3
+                    g = im_bytes[ (x * im_width + im_width - 1 - y) * 3 + 1 ] >> 3
+                    b = im_bytes[ (x * im_width + im_width - 1 - y) * 3 + 2 ] >> 3
                   c = (g << 11) | (r << 6) | (b << 1)
                   if use_ibit:
-                    ge = im_bytes[ (y * im_width + x) * 3 + 1 ] % 8
+                    if rotate == 1:
+                      ge = im_bytes[ ((im_height - 1 - x) * im_width + y) * 3 + 1 ] % 8
+                    else:
+                      ge = im_bytes[ (x * im_width + im_width - 1 - y) * 3 + 1 ] % 8
                     if ge >= 4:
                       c += 1
                   else:
@@ -219,25 +221,24 @@ class BMPtoRAW:
 
             else:
 
-              if rotate == 1:
-                yl = range(im_width)
-                xl = reversed(range(im_height))
-              else:
-                yl = reversed(range(im_width))
-                xl = range(im_height)
-
               if frame0 is False:
                 grm_bytes = bytearray(256 * im_height * 2 * 2)
-                for y in yl:
-                  for x in xl:
-                    r = im_bytes[ (x * im_width + y) * 3 + 0 ] >> 3
-                    g = im_bytes[ (x * im_width + y) * 3 + 1 ] >> 3
-                    b = im_bytes[ (x * im_width + y) * 3 + 2 ] >> 3
+                for y in range(im_width):
+                  for x in range(im_height):
+                    if rotate == 1:
+                      r = im_bytes[ ((im_height - 1 - x) * im_width + y) * 3 + 0 ] >> 3
+                      g = im_bytes[ ((im_height - 1 - x) * im_width + y) * 3 + 1 ] >> 3
+                      b = im_bytes[ ((im_height - 1 - x) * im_width + y) * 3 + 2 ] >> 3
+                    else:
+                      r = im_bytes[ (x * im_width + im_width - 1 - y) * 3 + 0 ] >> 3
+                      g = im_bytes[ (x * im_width + im_width - 1 - y) * 3 + 1 ] >> 3
+                      b = im_bytes[ (x * im_width + im_width - 1 - y) * 3 + 2 ] >> 3
                     c = (g << 11) | (r << 6) | (b << 1)
                     if use_ibit:
-                      #re = im_bytes[ (y * im_width + x) * 3 + 0 ] % 8
-                      ge = im_bytes[ (y * im_width + x) * 3 + 1 ] % 8
-                      #if re >= 4 and ge >= 4:
+                      if rotate == 1:
+                        ge = im_bytes[ ((im_height - 1 - x) * im_width + y) * 3 + 1 ] % 8
+                      else:
+                        ge = im_bytes[ (x * im_width + im_width - 1 - y) * 3 + 1 ] % 8
                       if ge >= 4:
                         c += 1
                     else:
@@ -247,16 +248,22 @@ class BMPtoRAW:
                     grm_bytes[ y * 512 * 2 + (ofs_x + x) * 2 + 1 ] = c % 256
                 frame0 = True
               else:
-                for y in yl:
-                  for x in xl:
-                    r = im_bytes[ (x * im_width + y) * 3 + 0 ] >> 3
-                    g = im_bytes[ (x * im_width + y) * 3 + 1 ] >> 3
-                    b = im_bytes[ (x * im_width + y) * 3 + 2 ] >> 3
+                for y in range(im_width):
+                  for x in range(im_height):
+                    if rotate == 1:
+                      r = im_bytes[ ((im_height - 1 - x) * im_width + y) * 3 + 0 ] >> 3
+                      g = im_bytes[ ((im_height - 1 - x) * im_width + y) * 3 + 1 ] >> 3
+                      b = im_bytes[ ((im_height - 1 - x) * im_width + y) * 3 + 2 ] >> 3
+                    else:
+                      r = im_bytes[ (x * im_width + im_width - 1 - y) * 3 + 0 ] >> 3
+                      g = im_bytes[ (x * im_width + im_width - 1 - y) * 3 + 1 ] >> 3
+                      b = im_bytes[ (x * im_width + im_width - 1 - y) * 3 + 2 ] >> 3
                     c = (g << 11) | (r << 6) | (b << 1)
                     if use_ibit:
-                      #re = im_bytes[ (y * im_width + x) * 3 + 0 ] % 8
-                      ge = im_bytes[ (y * im_width + x) * 3 + 1 ] % 8
-                      #if re >= 4 and ge >= 4:
+                      if rotate == 1:
+                        ge = im_bytes[ ((im_height - 1 - x) * im_width + y) * 3 + 1 ] % 8
+                      else:
+                        ge = im_bytes[ (x * im_width + im_width - 1 - y) * 3 + 1 ] % 8
                       if ge >= 4:
                         c += 1
                     else:
